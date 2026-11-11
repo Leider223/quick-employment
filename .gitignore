@@ -1,0 +1,6 @@
+# Archivos que Git NO debe guardar (basura del sistema o del editor)
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log
+.vscode/
