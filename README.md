@@ -12,7 +12,7 @@ HTML5 · CSS3 · PHP nativo (con PDO) · MySQL · phpMyAdmin · XAMPP · Visual 
 2. Clonar este repositorio dentro de `htdocs`:
    ```
    cd C:\xampp\htdocs
-   git clone https://github.com/USUARIO-DUENO/quick-employment.git
+   git clone https://github.com/Leider223/quick-employment.git
    ```
 3. Entrar a `http://localhost/phpmyadmin`, pestaña **Importar**, y cargar `database/quick_employment.sql` (conjunto de caracteres: utf-8).
 4. Abrir `http://localhost/quick-employment/probar_conexion.php`. Debe decir **Conexión exitosa** y **Usuarios registrados: 5**.
