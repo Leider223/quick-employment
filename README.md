@@ -15,7 +15,9 @@ HTML5 · CSS3 · PHP nativo (con PDO) · MySQL · phpMyAdmin · XAMPP · Visual 
    git clone https://github.com/Leider223/quick-employment.git
    ```
 3. Entrar a `http://localhost/phpmyadmin`, pestaña **Importar**, y cargar `database/quick_employment.sql` (conjunto de caracteres: utf-8).
-4. Abrir `http://localhost/quick-employment/probar_conexion.php`. Debe decir **Conexión exitosa** y **Usuarios registrados: 5**.
+   El script crea la base `quick_employment`, las 11 tablas y los datos de prueba. Se puede volver a importar: borra y recrea las tablas.
+4. Comprobar que la base quedó creada: `quick_employment` debe tener 11 tablas (`usuarios`, `perfiles_freelancer`, `habilidades`, `freelancer_habilidades`, `categorias`, `servicios`, `disponibilidad`, `solicitudes`, `pagos`, `calificaciones` y `notificaciones`).
+5. Abrir `http://localhost/quick-employment/modulos/usuarios/login.php` e iniciar sesión con uno de los usuarios de prueba.
 
 > Si tu MySQL tiene contraseña para `root`, no la subas a GitHub. Avisa al equipo antes de cambiar `config/conexion.php`.
 
@@ -31,12 +33,16 @@ Contraseña de todos: `Test1234`
 | Freelancer | julian.freelancer@test.com |
 | Freelancer | sofia.freelancer@test.com |
 
+> El script también trae las cuentas creadas durante las pruebas (`leider`, `alonso posada`, `Camilo Posada`), con sus propias contraseñas.
+
 ## Estructura del proyecto
 
 ```
 quick-employment/
 ├── config/conexion.php          Única conexión a la base de datos
-├── includes/                    Archivos compartidos (sesión, notificaciones, encabezado, pie)
+├── includes/
+│   ├── sesion.php               Sesión, login y control de roles
+│   └── utilidades.php           Funciones compartidas de formularios
 ├── css/                         Estilos globales
 ├── assets/                      Imágenes y logo
 ├── modulos/
@@ -45,23 +51,75 @@ quick-employment/
 │   ├── solicitudes/             Integrante 3
 │   └── pagos_calificaciones/    Integrante 4
 ├── database/quick_employment.sql
-├── probar_conexion.php          Temporal: se borra al terminar la configuración
+├── probar_sesion.php            Temporal: panel de prueba de la sesión
 └── README.md
 ```
 
 ## Responsables
 
-| Integrante | Módulo | Rama | Nombre |
+| Integrante | Módulo | Carpeta | Nombre |
 |---|---|---|---|
-| 1 | Gestión de usuarios | `feature/usuarios` | |
-| 2 | Gestión de servicios | `feature/servicios` | |
-| 3 | Gestión de solicitudes | `feature/solicitudes` | |
-| 4 | Pagos y calificaciones | `feature/pagos-calificaciones` | |
+| 1 | Gestión de usuarios | `modulos/usuarios/` | |
+| 2 | Gestión de servicios | `modulos/servicios/` | |
+| 3 | Gestión de solicitudes | `modulos/solicitudes/` | |
+| 4 | Pagos y calificaciones | `modulos/pagos_calificaciones/` | |
 
-## Reglas de trabajo
+## Forma de trabajo (Live Share + Git)
 
-- **Nadie sube código directo a `main`.** Cada integrante trabaja en su rama y entra a `main` con un Pull Request revisado por un compañero.
-- Cada integrante solo modifica su carpeta dentro de `modulos/`.
-- Los archivos de `config/` e `includes/` tienen responsable; no se cambian sin avisar.
-- Una sola conexión (`config/conexion.php`), consultas preparadas con PDO, contraseñas con `password_hash()`.
-- Estados de solicitud (siempre así, en minúscula): `pendiente`, `aceptada`, `rechazada`, `cancelada`, `finalizada`.
+El equipo programa sobre una sola copia del proyecto: el responsable de Git abre
+una sesión de **Live Share** en VS Code, comparte el enlace y cada integrante
+trabaja en su módulo desde ahí. Los commits y el `push` los hace únicamente el
+responsable de Git, al terminar cada bloque de trabajo.
+
+### Durante la sesión
+
+- Cada integrante modifica **solo su carpeta** dentro de `modulos/`.
+- `config/`, `includes/` y `css/` los toca únicamente el responsable de Git,
+  porque los usan todos los módulos.
+- **Nadie ejecuta comandos de Git.** Un `checkout` o un `reset` de un invitado
+  afecta el trabajo de todos.
+- No se cambia de rama mientras la sesión está abierta: los archivos cambian en
+  la máquina de todos y se pierde lo que estén escribiendo.
+- Si dos personas escriben el mismo archivo a la vez, gana el último que
+  escribe. Por eso cada archivo tiene un solo dueño.
+- A quien solo va a revisar se le da el modo **solo lectura** de Live Share.
+
+### Base de datos de cada integrante
+
+Live Share comparte archivos, no la base de datos. Cada integrante importa
+`database/quick_employment.sql` en **su** XAMPP para poder probar su módulo.
+Si hace falta que todos vean los mismos datos, el responsable de Git comparte su
+servidor local desde Live Share (puerto `3306`).
+
+### Antes de cada commit
+
+1. Ver qué cambió: `git status --short`
+2. Revisar la sintaxis de todos los PHP:
+   ```powershell
+   Get-ChildItem -Recurse -Filter *.php | ForEach-Object { & C:\xampp\php\php.exe -l $_.FullName }
+   ```
+3. Añadir **solo** los archivos del módulo terminado. Evita `git add -A` para no
+   arrastrar cambios a medias de otros módulos ni borrados accidentales:
+   ```powershell
+   git add modulos/usuarios
+   git commit -m "feat(usuarios): registro, login y perfil del freelancer"
+   git push origin main
+   ```
+
+Prefijos para los mensajes de commit:
+
+| Prefijo | Cuándo |
+|---|---|
+| `feat(usuarios)` `feat(servicios)` `feat(solicitudes)` `feat(pagos)` | Funcionalidad nueva de un módulo |
+| `fix(...)` | Corrección de un error |
+| `docs` | Cambios en el README o en la documentación |
+| `db` | Cambios en `database/quick_employment.sql` |
+
+## Reglas de código
+
+- Una sola conexión (`config/conexion.php`), consultas preparadas con PDO,
+  contraseñas con `password_hash()`.
+- Los textos que vienen de la base o del usuario se muestran con
+  `htmlspecialchars()`.
+- Estados de solicitud (siempre así, en minúscula): `pendiente`, `aceptada`,
+  `rechazada`, `cancelada`, `finalizada`.
