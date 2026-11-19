@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../config/conexion.php';
 require_once __DIR__ . '/../../includes/sesion.php';
 
 if (usuario_logueado()) {
-    header('Location: ' . URL_BASE . '/probar_sesion.php');
+    header('Location: ' . URL_BASE . '/index.php');
     exit;
 }
 
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($usuario && password_verify($contrasena, $usuario['contrasena'])) {
             iniciar_sesion_usuario($usuario);
-            header('Location: ' . URL_BASE . '/probar_sesion.php');
+            header('Location: ' . URL_BASE . '/index.php');
             exit;
         } else {
             $error = 'Correo o contraseña incorrectos.';
