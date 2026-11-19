@@ -1,0 +1,129 @@
+/* =====================================================================
+   css/estilos.css  -  Estilos globales de Quick Employment
+   Todos los módulos usan estas clases para verse iguales.
+   Si necesitas algo propio, créalo en un CSS dentro de tu módulo.
+   ===================================================================== */
+
+:root {
+    --color-principal: #1d4ed8;
+    --color-principal-oscuro: #1e3a8a;
+    --color-fondo: #f3f4f6;
+    --color-texto: #1f2937;
+    --color-borde: #d1d5db;
+    --color-exito: #15803d;
+    --color-error: #b91c1c;
+    --color-aviso: #b45309;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--color-fondo);
+    color: var(--color-texto);
+    line-height: 1.5;
+}
+
+/* ---------- Estructura ---------- */
+.encabezado {
+    background: var(--color-principal-oscuro);
+    color: #fff;
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.encabezado a { color: #fff; text-decoration: none; margin-left: 16px; }
+.encabezado a:hover { text-decoration: underline; }
+.encabezado .logo { font-weight: bold; font-size: 1.2rem; margin-left: 0; }
+
+.contenedor {
+    max-width: 960px;
+    margin: 24px auto;
+    padding: 0 16px;
+}
+
+.pie {
+    text-align: center;
+    padding: 16px;
+    color: #6b7280;
+    font-size: 0.85rem;
+}
+
+/* ---------- Tarjetas ---------- */
+.tarjeta {
+    background: #fff;
+    border: 1px solid var(--color-borde);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+/* ---------- Formularios ---------- */
+label { display: block; font-weight: bold; margin: 12px 0 4px; }
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+select,
+textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--color-borde);
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+/* ---------- Botones ---------- */
+.boton {
+    display: inline-block;
+    background: var(--color-principal);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 18px;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    margin-top: 12px;
+}
+.boton:hover { background: var(--color-principal-oscuro); }
+.boton-secundario { background: #6b7280; }
+.boton-secundario:hover { background: #374151; }
+.boton-peligro { background: var(--color-error); }
+.boton-peligro:hover { background: #7f1d1d; }
+
+/* ---------- Mensajes ---------- */
+.alerta {
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    border: 1px solid;
+}
+.alerta-exito { background: #dcfce7; border-color: var(--color-exito); color: var(--color-exito); }
+.alerta-error { background: #fee2e2; border-color: var(--color-error); color: var(--color-error); }
+.alerta-aviso { background: #fef3c7; border-color: var(--color-aviso); color: var(--color-aviso); }
+
+/* ---------- Tablas ---------- */
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { padding: 10px; border-bottom: 1px solid var(--color-borde); text-align: left; }
+th { background: #e5e7eb; }
+
+/* ---------- Etiquetas de estado de las solicitudes ---------- */
+.estado {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+.estado-pendiente  { background: #fef3c7; color: #92400e; }
+.estado-aceptada   { background: #dbeafe; color: #1e40af; }
+.estado-rechazada  { background: #fee2e2; color: #991b1b; }
+.estado-cancelada  { background: #e5e7eb; color: #374151; }
+.estado-finalizada { background: #dcfce7; color: #166534; }
