@@ -114,6 +114,44 @@ table { width: 100%; border-collapse: collapse; background: #fff; }
 th, td { padding: 10px; border-bottom: 1px solid var(--color-borde); text-align: left; }
 th { background: #e5e7eb; }
 
+/* ---------- Resultados y bloques de contenido ---------- */
+.resultado {
+    border-top: 1px solid var(--color-borde);
+    padding: 12px 0;
+}
+.resultado:first-of-type { border-top: none; padding-top: 0; }
+.resultado h2 { margin: 0 0 4px; font-size: 1.1rem; }
+
+.meta { color: #6b7280; font-size: 0.9rem; margin: 2px 0; }
+.precio { font-weight: bold; color: var(--color-principal-oscuro); }
+
+.tabla-scroll { overflow-x: auto; }
+
+/* Formularios con botones en línea (Aceptar / Rechazar, marcar leídas) */
+.acciones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.acciones .boton { margin-top: 0; }
+.acciones form { display: inline; }
+
+/* ---------- Notificaciones ---------- */
+.avisos { list-style: none; padding: 0; margin: 0; }
+.aviso {
+    border: 1px solid var(--color-borde);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+}
+.aviso-nueva { border-left: 4px solid var(--color-principal); background: #eff6ff; }
+.aviso p { margin: 2px 0; }
+.badge-nueva {
+    display: inline-block;
+    background: var(--color-principal);
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 1px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+}
+
 /* ---------- Etiquetas de estado de las solicitudes ---------- */
 .estado {
     display: inline-block;
