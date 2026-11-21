@@ -42,12 +42,14 @@ quick-employment/
 ├── config/conexion.php          Única conexión a la base de datos
 ├── includes/
 │   ├── sesion.php               Sesión, login y control de roles
+│   ├── notificaciones.php       Avisos de CU13 (RF14)
+│   ├── plantilla.php            Encabezado, menú por rol y pie comunes
 │   └── utilidades.php           Funciones compartidas de formularios
 ├── css/                         Estilos globales
 ├── assets/                      Imágenes y logo
 ├── modulos/
 │   ├── usuarios/                Integrante 1
-│   ├── servicios/               Integrante 2
+│   ├── servicios/               Integrante 2 (CU02 buscar y CU09 mis servicios)
 │   ├── solicitudes/             Integrante 3
 │   └── pagos_calificaciones/    Integrante 4
 ├── database/quick_employment.sql

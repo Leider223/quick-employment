@@ -1,0 +1,334 @@
+/* =====================================================================
+   modulos/servicios/estilos.css
+   Estilos propios de CU02 (buscar) y CU09 (mis servicios).
+   Todo va encerrado en .pagina-servicios para no pisar los estilos
+   globales de css/estilos.css (encabezado, menu, pie, etc.).
+   ===================================================================== */
+
+.pagina-servicios {
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ---------- Titulos ---------- */
+
+.pagina-servicios h1 {
+    text-align: center;
+    color: #243b64;
+    margin-bottom: 10px;
+    font-size: 30px;
+}
+
+.pagina-servicios h2 {
+    color: #294d80;
+    margin: 25px 0 20px;
+}
+
+.pagina-servicios h3 {
+    color: #294d80;
+    margin-top: 0;
+    font-size: 20px;
+}
+
+.pagina-servicios .subtitulo-servicios {
+    text-align: center;
+    color: #68778a;
+    margin-bottom: 30px;
+}
+
+/* ---------- Tarjetas generales ---------- */
+
+.pagina-servicios .tarjeta {
+    background-color: #ffffff;
+    padding: 25px;
+    margin: 20px auto;
+    border-radius: 14px;
+    border: 1px solid #e3e8ef;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+}
+
+/* ---------- Listado de servicios ---------- */
+
+.pagina-servicios .contenedor-servicios {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    width: 100%;
+    margin: 25px auto 40px;
+    align-items: stretch;
+}
+
+.pagina-servicios .tarjeta-servicio {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+    background-color: #ffffff;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid #dfe6ef;
+    box-shadow: 0 5px 16px rgba(30, 55, 90, 0.07);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pagina-servicios .tarjeta-servicio:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 24px rgba(30, 55, 90, 0.13);
+}
+
+.pagina-servicios .tarjeta-servicio h3 {
+    font-size: 19px;
+    line-height: 1.4;
+    margin-bottom: 12px;
+    overflow-wrap: anywhere;
+}
+
+.pagina-servicios .descripcion {
+    color: #5d6878;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.pagina-servicios .categoria {
+    display: inline-block;
+    font-size: 13px;
+    color: #294d80;
+    background-color: #eaf0f8;
+    padding: 5px 11px;
+    border-radius: 20px;
+    margin: 8px 0;
+}
+
+/* ---------- Precio ---------- */
+
+.pagina-servicios .precio {
+    font-size: 23px;
+    font-weight: bold;
+    color: #176b50;
+    margin: 15px 0;
+}
+
+/* ---------- Estados ---------- */
+
+.pagina-servicios .estado {
+    display: inline-block;
+    width: fit-content;
+    padding: 6px 13px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.pagina-servicios .estado.activo {
+    background-color: #d9f5e5;
+    color: #176b50;
+}
+
+.pagina-servicios .estado.retirado,
+.pagina-servicios .estado.no-disponible {
+    background-color: #fce1e1;
+    color: #a52b2b;
+}
+
+/* ---------- Formularios ---------- */
+
+.pagina-servicios .formulario-servicio {
+    width: 100%;
+    max-width: 650px;
+    margin: 25px auto 40px;
+    padding: 28px;
+    background-color: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e3e8ef;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+}
+
+.pagina-servicios .formulario-servicio label {
+    display: block;
+    margin: 16px 0 7px;
+    font-weight: bold;
+    color: #294d80;
+}
+
+.pagina-servicios .formulario-servicio input,
+.pagina-servicios .formulario-servicio select,
+.pagina-servicios .formulario-servicio textarea {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccd4df;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    background-color: #ffffff;
+    color: #263238;
+}
+
+.pagina-servicios .formulario-servicio input:focus,
+.pagina-servicios .formulario-servicio select:focus,
+.pagina-servicios .formulario-servicio textarea:focus {
+    outline: none;
+    border-color: #294d80;
+    box-shadow: 0 0 0 3px rgba(41, 77, 128, 0.12);
+}
+
+.pagina-servicios .formulario-servicio textarea {
+    resize: vertical;
+}
+
+/* ---------- Botones ---------- */
+
+.pagina-servicios .formulario-servicio button,
+.pagina-servicios .boton-editar,
+.pagina-servicios .boton-cancelar,
+.pagina-servicios .boton-retirar,
+.pagina-servicios .boton-contratar {
+    display: inline-block;
+    padding: 11px 17px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.pagina-servicios .formulario-servicio button {
+    width: 100%;
+    margin-top: 22px;
+    background-color: #294d80;
+    color: #ffffff;
+    font-size: 16px;
+}
+
+.pagina-servicios .formulario-servicio button:hover,
+.pagina-servicios .boton-editar:hover {
+    background-color: #1d365c;
+    color: #ffffff;
+}
+
+.pagina-servicios .boton-editar {
+    background-color: #294d80;
+    color: #ffffff;
+    margin-top: 10px;
+}
+
+.pagina-servicios .boton-cancelar {
+    background-color: #e5e9ef;
+    color: #263238;
+    margin-top: 10px;
+}
+
+.pagina-servicios .boton-cancelar:hover {
+    background-color: #cbd3df;
+}
+
+.pagina-servicios .boton-retirar {
+    width: 100%;
+    margin-top: 12px;
+    background-color: #c0392b;
+    color: #ffffff;
+}
+
+.pagina-servicios .boton-retirar:hover {
+    background-color: #922b21;
+}
+
+.pagina-servicios .boton-contratar {
+    background-color: #176b50;
+    color: #ffffff;
+}
+
+.pagina-servicios .boton-contratar:hover {
+    background-color: #10533d;
+    color: #ffffff;
+}
+
+/* ---------- Acciones de las tarjetas ---------- */
+
+.pagina-servicios .acciones-servicio {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.pagina-servicios .acciones-servicio > * {
+    flex: 1;
+}
+
+.pagina-servicios .acciones-servicio form {
+    display: flex;
+}
+
+.pagina-servicios .acciones-servicio .boton-retirar {
+    margin-top: 0;
+}
+
+/* ---------- Mensajes ---------- */
+
+.pagina-servicios .mensaje-exito,
+.pagina-servicios .mensaje-error {
+    max-width: 650px;
+    margin: 15px auto;
+    padding: 13px 16px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.pagina-servicios .mensaje-exito {
+    background-color: #d9f5e5;
+    color: #176b50;
+    border: 1px solid #b8e8ca;
+}
+
+.pagina-servicios .mensaje-error {
+    background-color: #fce1e1;
+    color: #a52b2b;
+    border: 1px solid #f2c3c3;
+}
+
+/* ---------- Resultados de busqueda ---------- */
+
+.pagina-servicios .seccion-resultados {
+    margin-top: 30px;
+}
+
+.pagina-servicios .seccion-resultados > h2 {
+    text-align: center;
+}
+
+/* ---------- Pantallas pequenas ---------- */
+
+@media (max-width: 950px) {
+    .pagina-servicios .contenedor-servicios {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .pagina-servicios h1 {
+        font-size: 25px;
+    }
+
+    .pagina-servicios .tarjeta,
+    .pagina-servicios .tarjeta-servicio,
+    .pagina-servicios .formulario-servicio {
+        padding: 18px;
+    }
+
+    .pagina-servicios .contenedor-servicios {
+        grid-template-columns: 1fr;
+    }
+
+    .pagina-servicios .acciones-servicio {
+        flex-direction: column;
+    }
+
+    .pagina-servicios .acciones-servicio a,
+    .pagina-servicios .acciones-servicio form {
+        width: 100%;
+    }
+}

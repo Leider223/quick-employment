@@ -46,6 +46,7 @@ abrir_pagina('Inicio', $pdo);
             <a class="boton boton-secundario" href="modulos/solicitudes/mis_solicitudes.php">Mis solicitudes</a>
         <?php else: ?>
             <a class="boton" href="modulos/solicitudes/recibidas.php">Solicitudes recibidas</a>
+            <a class="boton boton-secundario" href="modulos/servicios/mis_servicios.php">Mis servicios</a>
             <a class="boton boton-secundario" href="modulos/usuarios/editar_perfil.php">Mi perfil</a>
         <?php endif; ?>
 
