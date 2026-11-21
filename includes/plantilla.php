@@ -56,6 +56,7 @@ function abrir_pagina(string $titulo, ?PDO $pdo = null): void
                     <a href="<?= $base ?>/modulos/solicitudes/recibidas.php">Solicitudes recibidas</a>
                     <a href="<?= $base ?>/modulos/usuarios/editar_perfil.php">Mi perfil</a>
                     <a href="<?= $base ?>/modulos/servicios/mis_servicios.php">Mis servicios</a>
+                    <a href="<?= $base ?>/modulos/usuarios/disponibilidad.php">Mi disponibilidad</a>
                     <a href="<?= $base ?>/modulos/usuarios/editar_habilidades.php">Mis habilidades</a>
                 <?php endif; ?>
 

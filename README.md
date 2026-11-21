@@ -14,8 +14,9 @@ HTML5 · CSS3 · PHP nativo (con PDO) · MySQL · phpMyAdmin · XAMPP · Visual 
    cd C:\xampp\htdocs
    git clone https://github.com/Leider223/quick-employment.git
    ```
-3. Entrar a `http://localhost/phpmyadmin`, pestaña **Importar**, y cargar `database/quick_employment.sql` (conjunto de caracteres: utf-8).
+3. Entrar a `http://localhost/phpmyadmin`, pestaña **Importar**, y cargar `database/quick_employment.sql` (conjunto de caracteres: **utf8mb4**).
    El script crea la base `quick_employment`, las 11 tablas y los datos de prueba. Se puede volver a importar: borra y recrea las tablas.
+   > Si en los nombres o descripciones ves `?` en lugar de tildes o eñes, la base se importó con otra codificación. Vuelve a importar el script eligiendo `utf8mb4`; el archivo ya está guardado en UTF-8.
 4. Comprobar que la base quedó creada: `quick_employment` debe tener 11 tablas (`usuarios`, `perfiles_freelancer`, `habilidades`, `freelancer_habilidades`, `categorias`, `servicios`, `disponibilidad`, `solicitudes`, `pagos`, `calificaciones` y `notificaciones`).
 5. Abrir `http://localhost/quick-employment/modulos/usuarios/login.php` e iniciar sesión con uno de los usuarios de prueba.
 
