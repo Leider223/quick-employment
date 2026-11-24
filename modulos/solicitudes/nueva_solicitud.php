@@ -1,24 +1,5 @@
 <?php
-// =====================================================================
-// modulos/solicitudes/nueva_solicitud.php
-// CU04 - Enviar solicitud de contratación (RF05)
-//
-// Flujo principal:
-//   1. El cliente pulsa «Contratar».
-//   2. Escribe lo que necesita y la fecha.
-//   3. El sistema revisa los datos.
-//   4. El sistema guarda la solicitud como «Pendiente».
-//   5. El sistema avisa al freelancer (CU13).
-// Flujo alterno: "Si el freelancer no está disponible, el sistema avisa
-// y muestra otros freelancers".
-//
-// Puntos importantes:
-//   - La disponibilidad se revisa antes de mostrar el formulario y otra
-//     vez al guardar: el freelancer pudo marcarse como no disponible
-//     mientras el cliente escribía.
-//   - El INSERT de la solicitud y el aviso al freelancer van en la misma
-//     transacción (o quedan los dos, o ninguno).
-// =====================================================================
+
 
 require_once __DIR__ . '/../../config/conexion.php';
 require_once __DIR__ . '/../../includes/plantilla.php';
@@ -27,18 +8,20 @@ require_once __DIR__ . '/../../includes/utilidades.php';
 requerir_rol('cliente');
 
 $id_servicio = (int) ($_GET['id_servicio'] ?? 0);
+$id_cliente = (int) $_SESSION['id_usuario'];
 
-$consulta = $pdo->prepare(
-    'SELECT s.id_servicio, s.titulo, s.descripcion, s.precio, s.id_categoria,
+$consulta = mysqli_query(
+    $connection_obj,
+    "SELECT s.id_servicio, s.titulo, s.descripcion, s.precio, s.id_categoria,
             s.id_freelancer, u.nombre AS freelancer,
             COALESCE(p.disponible, 1) AS disponible
-    FROM servicios s
-    INNER JOIN usuarios u ON u.id_usuario = s.id_freelancer
-    LEFT JOIN perfiles_freelancer p ON p.id_usuario = s.id_freelancer
-    WHERE s.id_servicio = :id AND s.estado = :estado'
-);
-$consulta->execute([':id' => $id_servicio, ':estado' => 'activo']);
-$servicio = $consulta->fetch();
+     FROM servicios s
+     INNER JOIN usuarios u ON u.id_usuario = s.id_freelancer
+     LEFT JOIN perfiles_freelancer p ON p.id_usuario = s.id_freelancer
+     WHERE s.id_servicio = $id_servicio AND s.estado = 'activo'"
+) or die(mysqli_error($connection_obj));
+
+$servicio = mysqli_fetch_assoc($consulta);
 
 $disponible = $servicio ? (int) $servicio['disponible'] === 1 : false;
 
@@ -46,23 +29,23 @@ $disponible = $servicio ? (int) $servicio['disponible'] === 1 : false;
 // Primero los de la misma categoría.
 $alternativas = [];
 if ($servicio && !$disponible) {
-    $consulta = $pdo->prepare(
-        'SELECT s.id_servicio, s.titulo, s.precio, u.nombre AS freelancer
+    $id_categoria = (int) $servicio['id_categoria'];
+    $id_actual = (int) $servicio['id_servicio'];
+
+    $consulta = mysqli_query(
+        $connection_obj,
+        "SELECT s.id_servicio, s.titulo, s.precio, u.nombre AS freelancer
          FROM servicios s
          INNER JOIN usuarios u ON u.id_usuario = s.id_freelancer
          LEFT JOIN perfiles_freelancer p ON p.id_usuario = s.id_freelancer
-         WHERE s.estado = :estado
-           AND s.id_servicio <> :id_servicio
+         WHERE s.estado = 'activo'
+           AND s.id_servicio <> $id_actual
            AND COALESCE(p.disponible, 1) = 1
-         ORDER BY (s.id_categoria = :categoria) DESC, s.fecha_publicacion DESC
-         LIMIT 5'
-    );
-    $consulta->execute([
-        ':estado'      => 'activo',
-        ':id_servicio' => $servicio['id_servicio'],
-        ':categoria'   => $servicio['id_categoria'],
-    ]);
-    $alternativas = $consulta->fetchAll();
+         ORDER BY (s.id_categoria = $id_categoria) DESC, s.fecha_publicacion DESC
+         LIMIT 5"
+    ) or die(mysqli_error($connection_obj));
+
+    $alternativas = mysqli_fetch_all($consulta, MYSQLI_ASSOC);
 }
 
 $errores = [];
@@ -85,47 +68,43 @@ if ($servicio && $disponible && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errores)) {
-        try {
-            $pdo->beginTransaction();
+        $descripcionSegura = mysqli_real_escape_string($connection_obj, $descripcion);
+        $fechaSegura = mysqli_real_escape_string($connection_obj, $fecha_requerida);
+        $id_servicio_actual = (int) $servicio['id_servicio'];
 
-            // estado, fecha_solicitud y las confirmaciones toman su valor
-            // por defecto (pendiente, ahora, 0 y 0)
-            $guardar = $pdo->prepare(
-                'INSERT INTO solicitudes (id_cliente, id_servicio, descripcion, fecha_requerida)
-                 VALUES (:cliente, :servicio, :descripcion, :fecha)'
-            );
-            $guardar->execute([
-                ':cliente'     => $_SESSION['id_usuario'],
-                ':servicio'    => $servicio['id_servicio'],
-                ':descripcion' => $descripcion,
-                ':fecha'       => $fecha_requerida,
-            ]);
+        // estado, fecha_solicitud y las confirmaciones toman su valor
+        // por defecto (pendiente, ahora, 0 y 0)
+        mysqli_begin_transaction($connection_obj);
 
-            $id_solicitud = (int) $pdo->lastInsertId();
+        $guardar = mysqli_query(
+            $connection_obj,
+            "INSERT INTO solicitudes (id_cliente, id_servicio, descripcion, fecha_requerida)
+             VALUES ($id_cliente, $id_servicio_actual, '$descripcionSegura', '$fechaSegura')"
+        );
+
+        if ($guardar) {
+            $id_solicitud = (int) mysqli_insert_id($connection_obj);
 
             // Paso 5 del CU04: avisa al freelancer (CU13 / RF14)
             crear_notificacion(
-                $pdo,
+                $connection_obj,
                 (int) $servicio['id_freelancer'],
                 $id_solicitud,
                 'Tienes una nueva solicitud para tu servicio «' . $servicio['titulo'] . '».'
             );
 
-            $pdo->commit();
+            mysqli_commit($connection_obj);
 
             header('Location: mis_solicitudes.php?enviada=1');
             exit;
-        } catch (PDOException $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            error_log('Error al guardar la solicitud: ' . $e->getMessage());
-            $errores[] = 'No se pudo enviar la solicitud. Inténtalo de nuevo.';
         }
+
+        mysqli_rollback($connection_obj);
+        $errores[] = 'No se pudo enviar la solicitud. Inténtalo de nuevo.';
     }
 }
 
-abrir_pagina('Contratar servicio', $pdo);
+abrir_pagina('Contratar servicio', $connection_obj);
 ?>
 
 <?php if (!$servicio): ?>

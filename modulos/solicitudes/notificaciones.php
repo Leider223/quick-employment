@@ -1,43 +1,33 @@
 <?php
-// =====================================================================
-// modulos/solicitudes/notificaciones.php
-// CU13 - Notificar (RF14), desde el lado del usuario que recibe el aviso
-//
-// El documento dice que el sistema guarda el aviso como "no leído".
-// Aquí el usuario ve sus avisos y puede marcarlos como leídos.
-//
-// El marcado se hace con POST y no al abrir la página, por la misma
-// razón que en responder.php: abrir una página no debería cambiar datos
-// (si no, el aviso se marcaría como leído con solo recargar o con un
-// enlace compartido).
-// =====================================================================
 
 require_once __DIR__ . '/../../config/conexion.php';
 require_once __DIR__ . '/../../includes/plantilla.php';
+require_once __DIR__ . '/../../includes/utilidades.php';
 
 requerir_login();
 
 $id_usuario = (int) $_SESSION['id_usuario'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    marcar_notificaciones_leidas($pdo, $id_usuario);
+    marcar_notificaciones_leidas($connection_obj, $id_usuario);
     header('Location: notificaciones.php?leidas=1');
     exit;
 }
 
-$consulta = $pdo->prepare(
-    'SELECT id_notificacion, id_solicitud, mensaje, fecha, leida
+$consulta = mysqli_query(
+    $connection_obj,
+    "SELECT id_notificacion, id_solicitud, mensaje, fecha, leida
      FROM notificaciones
-     WHERE id_usuario = :id
+     WHERE id_usuario = $id_usuario
      ORDER BY fecha DESC
-     LIMIT 50'
-);
-$consulta->execute([':id' => $id_usuario]);
-$avisos = $consulta->fetchAll();
+     LIMIT 50"
+) or die(mysqli_error($connection_obj));
 
-$no_leidas = contar_no_leidas($pdo, $id_usuario);
+$avisos = mysqli_fetch_all($consulta, MYSQLI_ASSOC);
 
-abrir_pagina('Notificaciones', $pdo);
+$no_leidas = contar_no_leidas($connection_obj, $id_usuario);
+
+abrir_pagina('Notificaciones', $connection_obj);
 ?>
 
 <div class="tarjeta">

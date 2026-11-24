@@ -1,26 +1,5 @@
 <?php
-// =====================================================================
-// modulos/solicitudes/responder.php
-// CU10 - Responder solicitud (RF11) y RF15 (guardar el estado)
-//
-// Flujo principal:
-//   3. El freelancer la acepta o la rechaza.
-//   4. El sistema cambia el estado de la solicitud.
-//   5. El sistema avisa al cliente (CU13).
-// Flujo alterno: "Si la solicitud ya no está pendiente, el sistema avisa
-// y no deja responderla".
-//
-// Puntos importantes para la sustentación:
-//   - La acción se hace con POST (formulario), no con enlaces. Cambiar
-//     datos por GET es un error clásico porque el navegador puede repetir
-//     la acción al recargar o al "precargar" enlaces.
-//   - El UPDATE lleva la condición "AND estado = 'pendiente'". Si dos
-//     pestañas intentan responder lo mismo, solo la primera afecta una
-//     fila (rowCount() === 1) y la segunda recibe el aviso del flujo
-//     alterno. Eso evita condiciones de carrera.
-//   - El cambio de estado y el aviso al cliente van en la MISMA
-//     transacción: o se guardan los dos, o no se guarda ninguno.
-// =====================================================================
+
 
 require_once __DIR__ . '/../../config/conexion.php';
 require_once __DIR__ . '/../../includes/plantilla.php';
@@ -30,22 +9,23 @@ requerir_rol('freelancer');
 
 $id_solicitud = (int) ($_GET['id'] ?? $_POST['id_solicitud'] ?? 0);
 
+$id_freelancer = (int) $_SESSION['id_usuario'];
+
 // La consulta filtra por s.id_freelancer = yo: si la solicitud no es de
 // un servicio mío, no aparece y más abajo se responde 403.
-$consulta = $pdo->prepare(
-    'SELECT sol.id_solicitud, sol.descripcion, sol.estado, sol.fecha_solicitud,
+$consulta = mysqli_query(
+    $connection_obj,
+    "SELECT sol.id_solicitud, sol.descripcion, sol.estado, sol.fecha_solicitud,
             sol.fecha_requerida, sol.id_cliente,
             s.titulo, s.precio, uc.nombre AS cliente
      FROM solicitudes sol
-     INNER JOIN servicios s  ON s.id_servicio = sol.id_servicio
-     INNER JOIN usuarios  uc ON uc.id_usuario = sol.id_cliente
-     WHERE sol.id_solicitud = :id AND s.id_freelancer = :freelancer'
-);
-$consulta->execute([
-    ':id'         => $id_solicitud,
-    ':freelancer' => $_SESSION['id_usuario'],
-]);
-$solicitud = $consulta->fetch();
+     INNER JOIN servicios s ON s.id_servicio = sol.id_servicio
+     INNER JOIN usuarios uc ON uc.id_usuario = sol.id_cliente
+     WHERE sol.id_solicitud = $id_solicitud
+       AND s.id_freelancer = $id_freelancer"
+) or die(mysqli_error($connection_obj));
+
+$solicitud = mysqli_fetch_assoc($consulta);
 
 $errores = [];
 
@@ -63,49 +43,41 @@ if (!$solicitud) {
     } else {
         $nuevo_estado = $accion === 'aceptar' ? 'aceptada' : 'rechazada';
 
-        try {
-            $pdo->beginTransaction();
+        $estadoSeguro = mysqli_real_escape_string($connection_obj, $nuevo_estado);
+        $id_actual = (int) $solicitud['id_solicitud'];
 
-            $actualizar = $pdo->prepare(
-                "UPDATE solicitudes
-                 SET estado = :estado
-                 WHERE id_solicitud = :id AND estado = 'pendiente'"
+        mysqli_begin_transaction($connection_obj);
+
+        $actualizar = mysqli_query(
+            $connection_obj,
+            "UPDATE solicitudes
+             SET estado = '$estadoSeguro'
+             WHERE id_solicitud = $id_actual AND estado = 'pendiente'"
+        );
+
+        if ($actualizar && mysqli_affected_rows($connection_obj) === 1) {
+            // RF14 / CU13: aviso dentro de la plataforma
+            crear_notificacion(
+                $connection_obj,
+                (int) $solicitud['id_cliente'],
+                $id_actual,
+                'Tu solicitud #' . $id_actual . ' para «' . $solicitud['titulo']
+                    . '» fue ' . $nuevo_estado . '.'
             );
-            $actualizar->execute([
-                ':estado' => $nuevo_estado,
-                ':id'     => $solicitud['id_solicitud'],
-            ]);
 
-            if ($actualizar->rowCount() !== 1) {
-                // Alguien más la respondió entre que se abrió la página y
-                // que se envió el formulario.
-                $pdo->rollBack();
-                $errores[] = 'La solicitud cambió de estado mientras la revisabas. Actualiza la página.';
-            } else {
-                // RF14 / CU13: aviso dentro de la plataforma
-                crear_notificacion(
-                    $pdo,
-                    (int) $solicitud['id_cliente'],
-                    (int) $solicitud['id_solicitud'],
-                    'Tu solicitud #' . $solicitud['id_solicitud'] . ' para «' . $solicitud['titulo']
-                        . '» fue ' . $nuevo_estado . '.'
-                );
-
-                $pdo->commit();
-                header('Location: recibidas.php?respondida=1');
-                exit;
-            }
-        } catch (PDOException $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            error_log('Error al responder solicitud: ' . $e->getMessage());
-            $errores[] = 'No se pudo guardar la respuesta. Inténtalo de nuevo.';
+            mysqli_commit($connection_obj);
+            header('Location: recibidas.php?respondida=1');
+            exit;
         }
+
+        // Alguien más la respondió entre que se abrió la página y
+        // que se envió el formulario.
+        mysqli_rollback($connection_obj);
+        $errores[] = 'La solicitud cambió de estado mientras la revisabas. Actualiza la página.';
     }
 }
 
-abrir_pagina('Responder solicitud', $pdo);
+abrir_pagina('Responder solicitud', $connection_obj);
 ?>
 
 <?php if (!$solicitud): ?>
