@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../includes/sesion.php';
 
 requerir_rol('freelancer');
 
-$id_usuario = $_SESSION['id_usuario'];
+$id_usuario = (int) $_SESSION['id_usuario'];
 $errores = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -24,38 +24,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errores)) {
-        try {
-            // Si el perfil ya existe lo actualiza; si no existe, lo crea.
-            $guardar = $pdo->prepare(
-                'INSERT INTO perfiles_freelancer (id_usuario, presentacion, experiencia, disponible)
-                VALUES (:id, :presentacion, :experiencia, :disponible)
-                ON DUPLICATE KEY UPDATE
-                    presentacion = VALUES(presentacion),
-                    experiencia  = VALUES(experiencia),
-                    disponible   = VALUES(disponible)'
-            );
-            $guardar->execute([
-                ':id'           => $id_usuario,
-                ':presentacion' => $presentacion,
-                ':experiencia'  => $experiencia,
-                ':disponible'   => $disponible,
-            ]);
+        $presentacionSegura = mysqli_real_escape_string($connection_obj, $presentacion);
+        $experienciaSegura = mysqli_real_escape_string($connection_obj, $experiencia);
+        $disponible = (int) $disponible;
 
+        // Si el perfil ya existe lo actualiza; si no existe, lo crea.
+        $query = "INSERT INTO perfiles_freelancer (id_usuario, presentacion, experiencia, disponible)
+                  VALUES ($id_usuario, '$presentacionSegura', '$experienciaSegura', $disponible)
+                  ON DUPLICATE KEY UPDATE
+                      presentacion = VALUES(presentacion),
+                      experiencia = VALUES(experiencia),
+                      disponible = VALUES(disponible)";
+
+        if (mysqli_query($connection_obj, $query)) {
             // Se recarga la página para mostrar lo que quedó guardado
             header('Location: editar_perfil.php?guardado=1');
             exit;
-        } catch (PDOException $e) {
-            error_log('Error al guardar perfil: ' . $e->getMessage());
-            $errores[] = 'No se pudo guardar el perfil. Inténtalo de nuevo.';
         }
+
+        $errores[] = 'No se pudo guardar el perfil. Inténtalo de nuevo.';
     }
 } else {
 
-    $consulta = $pdo->prepare(
-        'SELECT presentacion, experiencia, disponible FROM perfiles_freelancer WHERE id_usuario = :id'
-    );
-    $consulta->execute([':id' => $id_usuario]);
-    $perfil = $consulta->fetch();
+    $resultado = mysqli_query(
+        $connection_obj,
+        "SELECT presentacion, experiencia, disponible
+         FROM perfiles_freelancer
+         WHERE id_usuario = $id_usuario"
+    ) or die(mysqli_error($connection_obj));
+
+    $perfil = mysqli_fetch_assoc($resultado);
 
     $presentacion = $perfil['presentacion'] ?? '';
     $experiencia  = $perfil['experiencia'] ?? '';
@@ -107,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
 
             <p>
-                <a href="/quick-employment/probar_sesion.php">Volver</a> |
+                <a href="/quick-employment/index.php">Volver</a> |
                 <a href="/quick-employment/modulos/usuarios/logout.php">Cerrar sesión</a>
             </p>
         </div>

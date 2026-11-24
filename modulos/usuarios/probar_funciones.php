@@ -4,8 +4,8 @@ require_once __DIR__ . '/funciones_perfil.php';
 
 $id = (int) ($_GET['id'] ?? 0);
 
-$perfil      = obtener_perfil_freelancer($pdo, $id);
-$habilidades = obtener_habilidades_freelancer($pdo, $id);
+$perfil      = obtener_perfil_freelancer($connection_obj, $id);
+$habilidades = obtener_habilidades_freelancer($connection_obj, $id);
 ?>
 <!DOCTYPE html>
 <html lang="es">

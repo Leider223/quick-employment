@@ -1,20 +1,5 @@
 <?php
-// =====================================================================
-// modulos/usuarios/perfil.php
-// CU03 - Consultar perfil de freelancer (RF04)
-//
-// El RF04 pide mostrar el perfil del freelancer con SUS HABILIDADES,
-// EXPERIENCIA, SERVICIOS, DISPONIBILIDAD y CALIFICACIONES. Por eso esta
-// página hace cinco consultas, cada una a su tabla:
-//   1. perfil      -> funciones_perfil.php (nombre, presentación, experiencia)
-//   2. habilidades -> funciones_perfil.php (tabla freelancer_habilidades)
-//   3. servicios   -> los que están en estado 'activo'
-//   4. disponibilidad -> días y horarios (tabla disponibilidad)
-//   5. calificaciones -> notas de los clientes (tabla calificaciones)
-//
-// Flujo alterno del CU03: "Si el perfil ya no está disponible, el sistema
-// muestra un mensaje". Se cumple cuando el id no existe o no es freelancer.
-// =====================================================================
+
 
 require_once __DIR__ . '/../../config/conexion.php';
 require_once __DIR__ . '/../../includes/plantilla.php';
@@ -25,8 +10,8 @@ requerir_login();
 
 $id_freelancer = (int) ($_GET['id'] ?? 0);
 
-$perfil      = obtener_perfil_freelancer($pdo, $id_freelancer);
-$habilidades = $perfil ? obtener_habilidades_freelancer($pdo, $id_freelancer) : [];
+$perfil      = obtener_perfil_freelancer($connection_obj, $id_freelancer);
+$habilidades = $perfil ? obtener_habilidades_freelancer($connection_obj, $id_freelancer) : [];
 
 $servicios = [];
 $disponibilidad = [];
@@ -34,41 +19,44 @@ $calificaciones = [];
 
 if ($perfil) {
     // Servicios publicados y vigentes
-    $consulta = $pdo->prepare(
-        'SELECT s.id_servicio, s.titulo, s.descripcion, s.precio, c.nombre AS categoria
+    $consulta = mysqli_query(
+        $connection_obj,
+        "SELECT s.id_servicio, s.titulo, s.descripcion, s.precio, c.nombre AS categoria
          FROM servicios s
          INNER JOIN categorias c ON c.id_categoria = s.id_categoria
-         WHERE s.id_freelancer = :id AND s.estado = :estado
-         ORDER BY s.fecha_publicacion DESC'
-    );
-    $consulta->execute([':id' => $id_freelancer, ':estado' => 'activo']);
-    $servicios = $consulta->fetchAll();
+         WHERE s.id_freelancer = $id_freelancer AND s.estado = 'activo'
+         ORDER BY s.fecha_publicacion DESC"
+    ) or die(mysqli_error($connection_obj));
+
+    $servicios = mysqli_fetch_all($consulta, MYSQLI_ASSOC);
 
     // Días y horarios. FIELD() ordena los días de lunes a domingo y no
     // alfabéticamente, que es lo que espera quien lee el perfil.
-    $consulta = $pdo->prepare(
+    $consulta = mysqli_query(
+        $connection_obj,
         "SELECT dia, hora_inicio, hora_fin
          FROM disponibilidad
-         WHERE id_freelancer = :id
+         WHERE id_freelancer = $id_freelancer
          ORDER BY FIELD(dia, 'lunes', 'martes', 'miercoles', 'jueves',
                         'viernes', 'sabado', 'domingo'), hora_inicio"
-    );
-    $consulta->execute([':id' => $id_freelancer]);
-    $disponibilidad = $consulta->fetchAll();
+    ) or die(mysqli_error($connection_obj));
+
+    $disponibilidad = mysqli_fetch_all($consulta, MYSQLI_ASSOC);
 
     // Calificaciones: se llega a ellas por la solicitud y el servicio
-    $consulta = $pdo->prepare(
-        'SELECT cal.puntuacion, cal.comentario, cal.fecha,
+    $consulta = mysqli_query(
+        $connection_obj,
+        "SELECT cal.puntuacion, cal.comentario, cal.fecha,
                 u.nombre AS cliente, s.titulo AS servicio
          FROM calificaciones cal
          INNER JOIN solicitudes sol ON sol.id_solicitud = cal.id_solicitud
          INNER JOIN servicios s     ON s.id_servicio   = sol.id_servicio
          INNER JOIN usuarios u      ON u.id_usuario    = sol.id_cliente
-         WHERE s.id_freelancer = :id
-         ORDER BY cal.fecha DESC'
-    );
-    $consulta->execute([':id' => $id_freelancer]);
-    $calificaciones = $consulta->fetchAll();
+         WHERE s.id_freelancer = $id_freelancer
+         ORDER BY cal.fecha DESC"
+    ) or die(mysqli_error($connection_obj));
+
+    $calificaciones = mysqli_fetch_all($consulta, MYSQLI_ASSOC);
 }
 
 // Promedio de las notas (se calcula en PHP porque ya tenemos la lista)
@@ -92,7 +80,7 @@ $nombres_dia = [
     'domingo'   => 'Domingo',
 ];
 
-abrir_pagina('Perfil del freelancer', $pdo);
+abrir_pagina('Perfil del freelancer', $connection_obj);
 ?>
 
 <?php if (!$perfil): ?>

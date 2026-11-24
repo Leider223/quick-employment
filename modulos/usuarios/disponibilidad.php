@@ -1,23 +1,5 @@
 <?php
-// =====================================================================
-// modulos/usuarios/disponibilidad.php
-// CU11 - Gestionar disponibilidad (RF12)
-//
-// Flujo principal del documento:
-//   1. El freelancer entra a disponibilidad.
-//   2. Elige días y horarios, o se marca como no disponible.
-//   3. El sistema guarda la información.
-// Flujo alterno: si el horario no es válido, muestra un error.
-// Postcondición: la disponibilidad se ve en su perfil (CU03).
-//
-// Decisiones técnicas:
-//   - Solo el freelancer puede entrar (requerir_rol).
-//   - El id del freelancer sale de la sesión, nunca del formulario.
-//   - El interruptor "disponible" vive en perfiles_freelancer y es el
-//     mismo dato que usa buscar.php para ocultar el botón Contratar.
-//   - Los horarios son filas de la tabla disponibilidad. Se valida que
-//     la hora final sea mayor que la inicial y que no se crucen.
-// =====================================================================
+
 
 require_once __DIR__ . '/../../config/conexion.php';
 require_once __DIR__ . '/../../includes/plantilla.php';
@@ -45,13 +27,15 @@ $inicioSel = '';
 $finSel    = '';
 
 // Estado actual del interruptor (si no hay fila de perfil, esta disponible)
-$consulta = $pdo->prepare(
+$resultado = mysqli_query(
+    $connection_obj,
     "SELECT disponible
     FROM perfiles_freelancer
-    WHERE id_usuario = ?"
-);
-$consulta->execute([$idFreelancer]);
-$disponible = (int) ($consulta->fetchColumn() ?? 1);
+    WHERE id_usuario = $idFreelancer"
+) or die(mysqli_error($connection_obj));
+
+$fila = mysqli_fetch_assoc($resultado);
+$disponible = $fila ? (int) $fila['disponible'] : 1;
 
 // ---------------------------------------------------------------------
 // Acciones (POST)
@@ -65,20 +49,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // valor escondido en el formulario.
         $nuevoEstado = $disponible ? 0 : 1;
 
-        try {
-            $stmt = $pdo->prepare(
-                "INSERT INTO perfiles_freelancer (id_usuario, disponible)
-                VALUES (?, ?)
-                ON DUPLICATE KEY UPDATE disponible = VALUES(disponible)"
-            );
-            $stmt->execute([$idFreelancer, $nuevoEstado]);
+        $query = "INSERT INTO perfiles_freelancer (id_usuario, disponible)
+                  VALUES ($idFreelancer, $nuevoEstado)
+                  ON DUPLICATE KEY UPDATE disponible = VALUES(disponible)";
 
+        if (mysqli_query($connection_obj, $query)) {
             header('Location: disponibilidad.php?estado=1');
             exit;
-        } catch (PDOException $e) {
-            error_log('Error al cambiar disponibilidad: ' . $e->getMessage());
-            $error = 'No se pudo cambiar tu disponibilidad.';
         }
+
+        $error = 'No se pudo cambiar tu disponibilidad.';
     }
 
     // ---- Agregar una franja de horario -----------------------------
@@ -107,44 +87,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $inicioDb = $inicio . ':00';
             $finDb    = $fin . ':00';
 
-            try {
-                // Dos franjas del mismo dia se cruzan si una empieza antes
-                // de que la otra termine y termina despues de que empiece.
-                $choque = $pdo->prepare(
-                    "SELECT COUNT(*)
-                    FROM disponibilidad
-                    WHERE id_freelancer = ?
-                      AND dia = ?
-                      AND hora_inicio < ?
-                      AND hora_fin > ?"
-                );
-                $choque->execute([
-                    $idFreelancer,
-                    $dia,
-                    $finDb,
-                    $inicioDb
-                ]);
+            $diaSeguro = mysqli_real_escape_string($connection_obj, $dia);
+            $inicioSeguro = mysqli_real_escape_string($connection_obj, $inicioDb);
+            $finSeguro = mysqli_real_escape_string($connection_obj, $finDb);
 
-                if ((int) $choque->fetchColumn() > 0) {
-                    $error = 'Ese horario se cruza con otro que ya tienes ese día.';
-                } else {
-                    $stmt = $pdo->prepare(
-                        "INSERT INTO disponibilidad
+            // Dos franjas del mismo dia se cruzan si una empieza antes
+            // de que la otra termine y termina despues de que empiece.
+            $choque = mysqli_query(
+                $connection_obj,
+                "SELECT COUNT(*) AS total
+                 FROM disponibilidad
+                 WHERE id_freelancer = $idFreelancer
+                   AND dia = '$diaSeguro'
+                   AND hora_inicio < '$finSeguro'
+                   AND hora_fin > '$inicioSeguro'"
+            );
+
+            $filaChoque = mysqli_fetch_assoc($choque);
+
+            if ((int) $filaChoque['total'] > 0) {
+                $error = 'Ese horario se cruza con otro que ya tienes ese día.';
+            } else {
+                $query = "INSERT INTO disponibilidad
                             (id_freelancer, dia, hora_inicio, hora_fin)
-                        VALUES (?, ?, ?, ?)"
-                    );
-                    $stmt->execute([
-                        $idFreelancer,
-                        $dia,
-                        $inicioDb,
-                        $finDb
-                    ]);
+                          VALUES ($idFreelancer, '$diaSeguro', '$inicioSeguro', '$finSeguro')";
 
+                if (mysqli_query($connection_obj, $query)) {
                     header('Location: disponibilidad.php?agregado=1');
                     exit;
                 }
-            } catch (PDOException $e) {
-                error_log('Error al agregar disponibilidad: ' . $e->getMessage());
+
                 $error = 'No se pudo guardar el horario.';
             }
         }
@@ -161,23 +133,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$idFranja) {
             $error = 'El horario seleccionado no es válido.';
         } else {
-            try {
-                $stmt = $pdo->prepare(
-                    "DELETE FROM disponibilidad
-                    WHERE id_disponibilidad = ? AND id_freelancer = ?"
-                );
-                $stmt->execute([$idFranja, $idFreelancer]);
+            $idFranja = (int) $idFranja;
 
-                if ($stmt->rowCount() === 1) {
-                    header('Location: disponibilidad.php?eliminado=1');
-                    exit;
-                }
+            $resultado = mysqli_query(
+                $connection_obj,
+                "DELETE FROM disponibilidad
+                 WHERE id_disponibilidad = $idFranja
+                   AND id_freelancer = $idFreelancer"
+            );
 
-                $error = 'El horario no existe o no es tuyo.';
-            } catch (PDOException $e) {
-                error_log('Error al eliminar disponibilidad: ' . $e->getMessage());
-                $error = 'No se pudo quitar el horario.';
+            if ($resultado && mysqli_affected_rows($connection_obj) === 1) {
+                header('Location: disponibilidad.php?eliminado=1');
+                exit;
             }
+
+            $error = 'El horario no existe o no es tuyo.';
         }
     } else {
         $error = 'La acción solicitada no es válida.';
@@ -198,18 +168,19 @@ if (isset($_GET['estado'])) {
 // ---------------------------------------------------------------------
 // Horarios actuales del freelancer
 // ---------------------------------------------------------------------
-$consulta = $pdo->prepare(
+$resultado = mysqli_query(
+    $connection_obj,
     "SELECT id_disponibilidad, dia, hora_inicio, hora_fin
     FROM disponibilidad
-    WHERE id_freelancer = ?
+    WHERE id_freelancer = $idFreelancer
     ORDER BY FIELD(dia, 'lunes', 'martes', 'miercoles', 'jueves',
                    'viernes', 'sabado', 'domingo'),
              hora_inicio"
-);
-$consulta->execute([$idFreelancer]);
-$horarios = $consulta->fetchAll();
+) or die(mysqli_error($connection_obj));
 
-abrir_pagina('Mi disponibilidad', $pdo);
+$horarios = mysqli_fetch_all($resultado, MYSQLI_ASSOC);
+
+abrir_pagina('Mi disponibilidad', $connection_obj);
 ?>
 
 <div class="tarjeta">

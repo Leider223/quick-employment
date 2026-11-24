@@ -42,59 +42,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
    
-    if (empty($errores)) {
-        $consulta = $pdo->prepare('SELECT COUNT(*) FROM usuarios WHERE correo = :correo');
-        $consulta->execute([':correo' => $correo]);
+    $correo_seguro = mysqli_real_escape_string($connection_obj, $correo);
 
-        if ($consulta->fetchColumn() > 0) {
+    if (empty($errores)) {
+        $resultado = mysqli_query(
+            $connection_obj,
+            "SELECT COUNT(*) AS total FROM usuarios WHERE correo = '$correo_seguro'"
+        ) or die(mysqli_error($connection_obj));
+
+        $fila = mysqli_fetch_assoc($resultado);
+
+        if ((int) $fila['total'] > 0) {
             $errores[] = 'Ese correo ya está registrado.';
         }
     }
 
     
     if (empty($errores)) {
-       
         $hash = password_hash($contrasena, PASSWORD_DEFAULT);
 
-        try {
-          
-            $pdo->beginTransaction();
+        $nombre_seguro = mysqli_real_escape_string($connection_obj, $nombre);
+        $hash_seguro = mysqli_real_escape_string($connection_obj, $hash);
+        $rol_seguro = mysqli_real_escape_string($connection_obj, $rol);
 
-            $insertar = $pdo->prepare(
-                'INSERT INTO usuarios (nombre, correo, contrasena, rol)
-                 VALUES (:nombre, :correo, :contrasena, :rol)'
+        mysqli_begin_transaction($connection_obj);
+
+        $query = "INSERT INTO usuarios (nombre, correo, contrasena, rol)
+                  VALUES ('$nombre_seguro', '$correo_seguro', '$hash_seguro', '$rol_seguro')";
+
+        $insertado = mysqli_query($connection_obj, $query);
+
+        if ($insertado && $rol === 'freelancer') {
+            $id_nuevo = (int) mysqli_insert_id($connection_obj);
+
+            $insertado = mysqli_query(
+                $connection_obj,
+                "INSERT INTO perfiles_freelancer (id_usuario) VALUES ($id_nuevo)"
             );
-            $insertar->execute([
-                ':nombre'     => $nombre,
-                ':correo'     => $correo,
-                ':contrasena' => $hash,
-                ':rol'        => $rol,
-            ]);
+        }
 
-          
-            if ($rol === 'freelancer') {
-                $id_nuevo = (int) $pdo->lastInsertId();
-                $perfil = $pdo->prepare('INSERT INTO perfiles_freelancer (id_usuario) VALUES (:id)');
-                $perfil->execute([':id' => $id_nuevo]);
-            }
-
-            $pdo->commit();
+        if ($insertado) {
+            mysqli_commit($connection_obj);
             $registro_exitoso = true;
 
-    
             $nombre = '';
             $correo = '';
             $rol = 'cliente';
+        } else {
+            mysqli_rollback($connection_obj);
 
-        } catch (PDOException $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();  
-            }
-            
-            if (($e->errorInfo[1] ?? 0) == 1062) {
+            if (mysqli_errno($connection_obj) == 1062) {
                 $errores[] = 'Ese correo ya está registrado.';
             } else {
-                error_log('Error en registro: ' . $e->getMessage());
                 $errores[] = 'No se pudo completar el registro. Inténtalo de nuevo.';
             }
         }

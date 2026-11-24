@@ -4,11 +4,16 @@ require_once __DIR__ . '/../../includes/sesion.php';
 
 requerir_rol('freelancer');
 
-$id_usuario = $_SESSION['id_usuario'];
+$id_usuario = (int) $_SESSION['id_usuario'];
 $mensaje = '';
 $tipo_mensaje = '';
 
-$lista = $pdo->query('SELECT id_habilidad, nombre FROM habilidades ORDER BY nombre')->fetchAll();
+$resultadoLista = mysqli_query(
+    $connection_obj,
+    'SELECT id_habilidad, nombre FROM habilidades ORDER BY nombre'
+) or die(mysqli_error($connection_obj));
+
+$lista = mysqli_fetch_all($resultadoLista, MYSQLI_ASSOC);
 $ids_validos = array_map('intval', array_column($lista, 'id_habilidad'));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -47,29 +52,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensaje = 'Alguna de las habilidades enviadas no es válida. No se guardó la selección.';
         $tipo_mensaje = 'error';
     } else {
-        try {
+        mysqli_begin_transaction($connection_obj);
 
-            $pdo->beginTransaction();
+        $ok = mysqli_query(
+            $connection_obj,
+            "DELETE FROM freelancer_habilidades WHERE id_freelancer = $id_usuario"
+        );
 
-            $eliminar = $pdo->prepare('DELETE FROM freelancer_habilidades WHERE id_freelancer = :id');
-            $eliminar->execute([':id' => $id_usuario]);
-
-            $insertar = $pdo->prepare(
-                'INSERT INTO freelancer_habilidades (id_freelancer, id_habilidad) VALUES (:id, :habilidad)'
-            );
+        if ($ok) {
             foreach ($seleccionadas as $id_habilidad) {
-                $insertar->execute([':id' => $id_usuario, ':habilidad' => $id_habilidad]);
-            }
+                $ok = mysqli_query(
+                    $connection_obj,
+                    "INSERT INTO freelancer_habilidades (id_freelancer, id_habilidad)
+                     VALUES ($id_usuario, $id_habilidad)"
+                );
 
-            $pdo->commit();
+                if (!$ok) {
+                    break;
+                }
+            }
+        }
+
+        if ($ok) {
+            mysqli_commit($connection_obj);
             $mensaje = 'Tus habilidades se guardaron correctamente.';
             $tipo_mensaje = 'exito';
-
-        } catch (PDOException $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            error_log('Error al guardar habilidades: ' . $e->getMessage());
+        } else {
+            mysqli_rollback($connection_obj);
             $mensaje = 'No se pudieron guardar las habilidades. Inténtalo de nuevo.';
             $tipo_mensaje = 'error';
         }
@@ -77,9 +86,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 
-$consulta = $pdo->prepare('SELECT id_habilidad FROM freelancer_habilidades WHERE id_freelancer = :id');
-$consulta->execute([':id' => $id_usuario]);
-$mis_habilidades = array_map('intval', $consulta->fetchAll(PDO::FETCH_COLUMN));
+$resultadoMias = mysqli_query(
+    $connection_obj,
+    "SELECT id_habilidad FROM freelancer_habilidades WHERE id_freelancer = $id_usuario"
+) or die(mysqli_error($connection_obj));
+
+$mis_habilidades = [];
+while ($fila = mysqli_fetch_assoc($resultadoMias)) {
+    $mis_habilidades[] = (int) $fila['id_habilidad'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -115,7 +130,7 @@ $mis_habilidades = array_map('intval', $consulta->fetchAll(PDO::FETCH_COLUMN));
 
             <p>
                 <a href="/quick-employment/modulos/usuarios/editar_perfil.php">Mi perfil</a> |
-                <a href="/quick-employment/probar_sesion.php">Volver</a>
+                <a href="/quick-employment/index.php">Volver</a>
             </p>
         </div>
     </div>
