@@ -1,11 +1,7 @@
 <?php
-// =====================================================================
-// includes/utilidades.php
-// Funciones pequeñas que se usan en varias páginas.
-// =====================================================================
 
-// Devuelve el texto de un campo POST sin espacios sobrantes.
-// Si el campo no llegó o llegó como arreglo, devuelve cadena vacía.
+
+
 function post_texto(string $campo): string
 {
     $valor = $_POST[$campo] ?? '';
@@ -13,8 +9,7 @@ function post_texto(string $campo): string
     return is_string($valor) ? trim($valor) : '';
 }
 
-// Devuelve la clase CSS que pinta la etiqueta del estado de una solicitud
-// (las clases están definidas en css/estilos.css).
+
 function clase_estado(string $estado): string
 {
     $validos = ['pendiente', 'aceptada', 'rechazada', 'cancelada', 'finalizada'];

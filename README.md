@@ -51,8 +51,8 @@ quick-employment/
 ├── modulos/
 │   ├── usuarios/                Integrante 1
 │   ├── servicios/               Integrante 2 (CU02 buscar y CU09 mis servicios)
-│   ├── solicitudes/             Integrante 3
-│   └── pagos_calificaciones/    Integrante 4
+│   ├── solicitudes/             Integrante 3 (incluye confirmar_finalizacion.php y cancelar.php)
+│   └── pagos_calificaciones/    Integrante 4 (incluye pagar.php y calificar.php)
 ├── database/quick_employment.sql
 ├── probar_sesion.php            Temporal: panel de prueba de la sesión
 └── README.md
@@ -126,3 +126,11 @@ Prefijos para los mensajes de commit:
   `htmlspecialchars()`.
 - Estados de solicitud (siempre así, en minúscula): `pendiente`, `aceptada`,
   `rechazada`, `cancelada`, `finalizada`.
+
+
+## Reglas funcionales acordadas para la versión final
+
+- **Pagos externos:** el cliente realiza el pago directamente al freelancer. Quick Employment no procesa dinero; únicamente registra valor, método y fecha.
+- **Finalización bilateral:** cliente y freelancer confirman desde el detalle de la solicitud. El estado cambia a `finalizada` únicamente cuando ambas confirmaciones están guardadas.
+- **Calificación:** el cliente puede calificar una sola vez, después de que la solicitud esté `finalizada` y el pago esté registrado.
+- **Cancelación:** el cliente puede cancelar una solicitud `pendiente` o `aceptada` mientras no exista pago registrado ni confirmaciones de finalización.
