@@ -39,6 +39,7 @@ function abrir_pagina($titulo, $con = null)
                     <a href="<?= $base ?>/modulos/solicitudes/recibidas.php">Solicitudes recibidas</a>
                     <a href="<?= $base ?>/modulos/usuarios/editar_perfil.php">Mi perfil</a>
                     <a href="<?= $base ?>/modulos/servicios/mis_servicios.php">Mis servicios</a>
+                    <a href="<?= $base ?>/modulos/pagos_calificaciones/mis_pagos.php">Pagos y calificaciones</a>
                     <a href="<?= $base ?>/modulos/usuarios/disponibilidad.php">Mi disponibilidad</a>
                     <a href="<?= $base ?>/modulos/usuarios/editar_habilidades.php">Mis habilidades</a>
                 <?php endif; ?>
@@ -64,7 +65,7 @@ function cerrar_pagina()
     </main>
 
     <footer class="pie">
-        Quick Employment - Proyecto de aula de Análisis y Diseño de Software
+        Quick Employment
     </footer>
 </body>
 </html>

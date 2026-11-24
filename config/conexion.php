@@ -19,19 +19,3 @@ mysqli_set_charset($connection_obj, "utf8mb4");
 
 // Hora de Colombia
 mysqli_query($connection_obj, "SET time_zone = '-05:00'");
-
-// ---------------------------------------------------------------------
-// TEMPORAL: algunos archivos todavia usan PDO. Este bloque se borra
-// cuando terminemos de pasar todo el proyecto a mysqli.
-// ---------------------------------------------------------------------
-$pdo = new PDO(
-    "mysql:host=localhost;dbname=quick_employment;charset=utf8mb4",
-    "root",
-    "",
-    [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES   => false,
-    ]
-);
-$pdo->exec("SET time_zone = '-05:00'");
