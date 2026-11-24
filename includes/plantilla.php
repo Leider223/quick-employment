@@ -1,37 +1,20 @@
 <?php
-// =====================================================================
-// includes/plantilla.php
-// Encabezado y pie comunes a todas las páginas.
-//
-// Para qué sirve: que el menú, los estilos y el pie estén en UN solo
-// archivo. Si mañana cambia el nombre del sistema o se agrega un enlace,
-// se cambia aquí y no en las 10 páginas.
-//
-// Cómo se usa en cualquier página:
-//     require_once __DIR__ . '/../../includes/plantilla.php';
-//     abrir_pagina('Mi perfil', $pdo);   // abre <html> y el menú
-//     ...contenido...
-//     cerrar_pagina();                   // cierra <main> y el pie
-//
-// El segundo parámetro es opcional: si se pasa la conexión, el menú
-// muestra cuántas notificaciones hay sin leer (CU13).
-// =====================================================================
+
 
 require_once __DIR__ . '/sesion.php';
 require_once __DIR__ . '/notificaciones.php';
 
-function abrir_pagina(string $titulo, ?PDO $pdo = null): void
+function abrir_pagina($titulo, $con = null)
 {
     $logueado = usuario_logueado();
-    $rol      = $_SESSION['rol'] ?? '';
+    $rol = $_SESSION['rol'] ?? '';
     $no_leidas = 0;
 
-    if ($pdo !== null && $logueado) {
-        $no_leidas = contar_no_leidas($pdo, (int) $_SESSION['id_usuario']);
+    if ($con !== null && $logueado) {
+        $no_leidas = contar_no_leidas($con, (int) $_SESSION['id_usuario']);
     }
 
-    // Las rutas del menú siempre empiezan en URL_BASE para que funcionen
-    // desde cualquier carpeta (modulos/usuarios, modulos/solicitudes, etc.).
+
     $base = URL_BASE;
     ?>
 <!DOCTYPE html>
@@ -75,7 +58,7 @@ function abrir_pagina(string $titulo, ?PDO $pdo = null): void
     <?php
 }
 
-function cerrar_pagina(): void
+function cerrar_pagina()
 {
     ?>
     </main>

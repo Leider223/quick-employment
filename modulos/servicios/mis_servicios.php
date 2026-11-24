@@ -1,24 +1,6 @@
 <?php
-// =====================================================================
-// modulos/servicios/mis_servicios.php
-// CU09 - Publicar y editar servicios (RF10)
-//
-// Flujo principal del documento:
-//   1. El freelancer pulsa "Nuevo servicio".
-//   2. Escribe titulo, descripcion, categoria y precio.
-//   3. El sistema revisa los datos y publica el servicio.
-//   4. Despues puede editar o quitar el servicio.
-// Flujo alterno: si faltan datos, se piden y no se guarda nada.
-//
-// Decisiones tecnicas:
-//   - requerir_rol('freelancer'): el actor del CU es el freelancer; si
-//     entra un cliente recibe 403 y no ve la pantalla.
-//   - El dueno del servicio NUNCA viene del formulario: sale de la
-//     sesion ($_SESSION['id_usuario']). Asi nadie publica a nombre de otro.
-//   - Editar y retirar llevan "AND id_freelancer = ?" para que un
-//     freelancer no pueda tocar los servicios de otro.
-//   - Los valores van como parametros (?) y no pegados al SQL.
-// =====================================================================
+
+
 
 require_once __DIR__ . '/../../config/conexion.php';
 require_once __DIR__ . '/../../includes/plantilla.php';
@@ -32,19 +14,20 @@ $error        = '';
 $servicioEditar = null;
 
 // Categorias para el <select> del formulario
-$categorias = $pdo->query(
+$resultadoCategorias = mysqli_query(
+    $connection_obj,
     "SELECT id_categoria, nombre
     FROM categorias
     ORDER BY nombre"
-)->fetchAll();
+) or die(mysqli_error($connection_obj));
 
-// ---------------------------------------------------------------------
-// Formularios (siempre por POST: crear, editar y retirar cambian datos)
-// ---------------------------------------------------------------------
+$categorias = mysqli_fetch_all($resultadoCategorias, MYSQLI_ASSOC);
+
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $accion = $_POST['accion'] ?? '';
 
-    // ---- Retirar un servicio propio --------------------------------
+    
     if ($accion === 'retirar') {
         $idServicio = filter_input(
             INPUT_POST,
@@ -55,30 +38,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$idServicio) {
             $error = 'El servicio seleccionado no es valido.';
         } else {
-            try {
-                $stmt = $pdo->prepare(
-                    "UPDATE servicios
-                    SET estado = 'retirado'
-                    WHERE id_servicio = ?
-                      AND id_freelancer = ?
-                      AND estado = 'activo'"
-                );
-                $stmt->execute([$idServicio, $idFreelancer]);
+            $idServicio = (int) $idServicio;
 
-                if ($stmt->rowCount() === 1) {
-                    header('Location: mis_servicios.php?retirado=1');
-                    exit;
-                }
+            $query = "UPDATE servicios
+                      SET estado = 'retirado'
+                      WHERE id_servicio = $idServicio
+                        AND id_freelancer = $idFreelancer
+                        AND estado = 'activo'";
 
-                $error = 'El servicio no existe, ya esta retirado o no es tuyo.';
-            } catch (PDOException $e) {
-                error_log('Error al retirar servicio: ' . $e->getMessage());
-                $error = 'No se pudo retirar el servicio.';
+            $resultado = mysqli_query($connection_obj, $query);
+
+            if ($resultado && mysqli_affected_rows($connection_obj) === 1) {
+                header('Location: mis_servicios.php?retirado=1');
+                exit;
             }
+
+            $error = 'El servicio no existe, ya esta retirado o no es tuyo.';
         }
     }
 
-    // ---- Publicar o actualizar un servicio -------------------------
+    
     elseif (in_array($accion, ['registrar', 'actualizar'], true)) {
         $idCategoria = filter_input(
             INPUT_POST,
@@ -107,84 +86,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!in_array($estado, ['activo', 'retirado'], true)) {
             $error = 'El estado seleccionado no es valido.';
         } else {
-            try {
-                $verificarCategoria = $pdo->prepare(
-                    "SELECT id_categoria
-                    FROM categorias
-                    WHERE id_categoria = ?"
-                );
-                $verificarCategoria->execute([$idCategoria]);
+            $idCategoria = (int) $idCategoria;
+            $tituloSeguro = mysqli_real_escape_string($connection_obj, $titulo);
+            $descripcionSegura = mysqli_real_escape_string($connection_obj, $descripcion);
+            $precio = (float) $precio;
 
-                if (!$verificarCategoria->fetch()) {
-                    $error = 'La categoria seleccionada no es valida.';
-                } elseif ($accion === 'registrar') {
-                    // Un servicio nuevo siempre nace activo y a nombre
-                    // del freelancer que tiene la sesion.
-                    $stmt = $pdo->prepare(
-                        "INSERT INTO servicios
+            $verificarCategoria = mysqli_query(
+                $connection_obj,
+                "SELECT id_categoria
+                 FROM categorias
+                 WHERE id_categoria = $idCategoria"
+            );
+
+            if (mysqli_num_rows($verificarCategoria) === 0) {
+                $error = 'La categoria seleccionada no es valida.';
+            } elseif ($accion === 'registrar') {
+                // Un servicio nuevo siempre nace activo y a nombre
+                // del freelancer que tiene la sesion.
+                $query = "INSERT INTO servicios
                             (id_freelancer, id_categoria, titulo,
                              descripcion, precio, estado)
-                        VALUES (?, ?, ?, ?, ?, 'activo')"
-                    );
-                    $stmt->execute([
-                        $idFreelancer,
-                        $idCategoria,
-                        $titulo,
-                        $descripcion,
-                        $precio
-                    ]);
+                          VALUES ($idFreelancer, $idCategoria, '$tituloSeguro',
+                                  '$descripcionSegura', $precio, 'activo')";
 
-                    header('Location: mis_servicios.php?registrado=1');
-                    exit;
+                mysqli_query($connection_obj, $query) or die(mysqli_error($connection_obj));
+
+                header('Location: mis_servicios.php?registrado=1');
+                exit;
+            } else {
+                $idServicio = filter_input(
+                    INPUT_POST,
+                    'id_servicio',
+                    FILTER_VALIDATE_INT
+                );
+
+                if (!$idServicio) {
+                    $error = 'El servicio seleccionado no es valido.';
                 } else {
-                    $idServicio = filter_input(
-                        INPUT_POST,
-                        'id_servicio',
-                        FILTER_VALIDATE_INT
+                    $idServicio = (int) $idServicio;
+
+                    // Primero se confirma que el servicio sea de este
+                    // freelancer; si no, no se actualiza nada.
+                    $propio = mysqli_query(
+                        $connection_obj,
+                        "SELECT id_servicio
+                         FROM servicios
+                         WHERE id_servicio = $idServicio
+                           AND id_freelancer = $idFreelancer"
                     );
 
-                    if (!$idServicio) {
-                        $error = 'El servicio seleccionado no es valido.';
+                    if (mysqli_num_rows($propio) === 0) {
+                        $error = 'El servicio no existe o no es tuyo.';
                     } else {
-                        // Primero se confirma que el servicio sea de este
-                        // freelancer; si no, no se actualiza nada.
-                        $propio = $pdo->prepare(
-                            "SELECT id_servicio
-                            FROM servicios
-                            WHERE id_servicio = ? AND id_freelancer = ?"
-                        );
-                        $propio->execute([$idServicio, $idFreelancer]);
+                        $estadoSeguro = mysqli_real_escape_string($connection_obj, $estado);
 
-                        if (!$propio->fetch()) {
-                            $error = 'El servicio no existe o no es tuyo.';
-                        } else {
-                            $stmt = $pdo->prepare(
-                                "UPDATE servicios
-                                SET id_categoria = ?,
-                                    titulo = ?,
-                                    descripcion = ?,
-                                    precio = ?,
-                                    estado = ?
-                                WHERE id_servicio = ? AND id_freelancer = ?"
-                            );
-                            $stmt->execute([
-                                $idCategoria,
-                                $titulo,
-                                $descripcion,
-                                $precio,
-                                $estado,
-                                $idServicio,
-                                $idFreelancer
-                            ]);
+                        $query = "UPDATE servicios
+                                  SET id_categoria = $idCategoria,
+                                      titulo = '$tituloSeguro',
+                                      descripcion = '$descripcionSegura',
+                                      precio = $precio,
+                                      estado = '$estadoSeguro'
+                                  WHERE id_servicio = $idServicio
+                                    AND id_freelancer = $idFreelancer";
 
-                            header('Location: mis_servicios.php?actualizado=1');
-                            exit;
-                        }
+                        mysqli_query($connection_obj, $query) or die(mysqli_error($connection_obj));
+
+                        header('Location: mis_servicios.php?actualizado=1');
+                        exit;
                     }
                 }
-            } catch (PDOException $e) {
-                error_log('Error al guardar servicio: ' . $e->getMessage());
-                $error = 'No se pudo guardar el servicio.';
             }
         }
     } else {
@@ -210,13 +180,17 @@ if (isset($_GET['editar'])) {
     $idEditar = filter_input(INPUT_GET, 'editar', FILTER_VALIDATE_INT);
 
     if ($idEditar) {
-        $stmtEditar = $pdo->prepare(
+        $idEditar = (int) $idEditar;
+
+        $resultadoEditar = mysqli_query(
+            $connection_obj,
             "SELECT *
-            FROM servicios
-            WHERE id_servicio = ? AND id_freelancer = ?"
+             FROM servicios
+             WHERE id_servicio = $idEditar
+               AND id_freelancer = $idFreelancer"
         );
-        $stmtEditar->execute([$idEditar, $idFreelancer]);
-        $servicioEditar = $stmtEditar->fetch();
+
+        $servicioEditar = mysqli_fetch_assoc($resultadoEditar);
 
         if (!$servicioEditar) {
             $error = 'El servicio que intentas editar no existe o no es tuyo.';
@@ -229,7 +203,8 @@ if (isset($_GET['editar'])) {
 // ---------------------------------------------------------------------
 // Listado: solo los servicios del freelancer logueado
 // ---------------------------------------------------------------------
-$stmt = $pdo->prepare(
+$resultadoServicios = mysqli_query(
+    $connection_obj,
     "SELECT
         s.id_servicio,
         s.titulo,
@@ -241,13 +216,13 @@ $stmt = $pdo->prepare(
     FROM servicios s
     INNER JOIN categorias c
         ON c.id_categoria = s.id_categoria
-    WHERE s.id_freelancer = ?
+    WHERE s.id_freelancer = $idFreelancer
     ORDER BY s.estado ASC, s.id_servicio DESC"
-);
-$stmt->execute([$idFreelancer]);
-$servicios = $stmt->fetchAll();
+) or die(mysqli_error($connection_obj));
 
-abrir_pagina('Mis servicios', $pdo);
+$servicios = mysqli_fetch_all($resultadoServicios, MYSQLI_ASSOC);
+
+abrir_pagina('Mis servicios', $connection_obj);
 ?>
 
 <link rel="stylesheet" href="estilos.css">

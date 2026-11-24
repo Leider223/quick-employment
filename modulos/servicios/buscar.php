@@ -1,26 +1,5 @@
 <?php
-// =====================================================================
-// modulos/servicios/buscar.php
-// CU02 - Buscar servicios (RF03)
-//
-// Flujo principal del documento:
-//   1. El cliente escribe una palabra clave o elige una categoria.
-//   2. El sistema busca entre los servicios publicados.
-//   3. El sistema muestra la lista de resultados.
-// Flujo alterno: si no hay resultados, avisa y deja buscar otra cosa.
-//
-// Mejora adicional (no contradice el CU): filtros de precio minimo y
-// maximo. El documento solo pide palabra clave y categoria.
-//
-// Decisiones tecnicas:
-//   - La busqueda se arma con un arreglo de condiciones, asi el mismo
-//     archivo sirve para buscar por texto, categoria, precio o una
-//     combinacion, sin duplicar la consulta.
-//   - Los valores NUNCA se pegan en el SQL: van como parametros (:) y
-//     por eso no hay riesgo de inyeccion SQL.
-//   - Se une perfiles_freelancer para saber si el freelancer esta
-//     disponible y ocultar el boton Contratar cuando no lo esta.
-// =====================================================================
+
 
 require_once __DIR__ . '/../../config/conexion.php';
 require_once __DIR__ . '/../../includes/plantilla.php';
@@ -39,7 +18,7 @@ $id_categoria = filter_input(
 
 $id_categoria = $id_categoria ?: 0;
 
-// Obtener filtros de precio
+
 $precio_min = isset($_GET['precio_min']) && $_GET['precio_min'] !== ''
     ? filter_var($_GET['precio_min'], FILTER_VALIDATE_FLOAT)
     : null;
@@ -57,43 +36,38 @@ if ($precio_max !== null && ($precio_max === false || $precio_max < 0)) {
     $precio_max = null;
 }
 
-$categorias = $pdo->query(
+$resultadoCategorias = mysqli_query(
+    $connection_obj,
     "SELECT id_categoria, nombre
     FROM categorias
     ORDER BY nombre"
-)->fetchAll();
+) or die(mysqli_error($connection_obj));
 
-$condiciones = ["s.estado = :estado"];
+$categorias = mysqli_fetch_all($resultadoCategorias, MYSQLI_ASSOC);
 
-$parametros = [
-    ':estado' => 'activo'
-];
+$condiciones = ["s.estado = 'activo'"];
 
 if ($texto !== '') {
-    $condiciones[] = "
-        (
-            s.titulo LIKE :texto_titulo
-            OR s.descripcion LIKE :texto_descripcion
-        )
-    ";
+    $texto_seguro = mysqli_real_escape_string($connection_obj, $texto);
 
-    $parametros[':texto_titulo'] = '%' . $texto . '%';
-    $parametros[':texto_descripcion'] = '%' . $texto . '%';
+    $condiciones[] = "(s.titulo LIKE '%$texto_seguro%'
+        OR s.descripcion LIKE '%$texto_seguro%')";
 }
 
 if ($id_categoria > 0) {
-    $condiciones[] = 's.id_categoria = :categoria';
-    $parametros[':categoria'] = $id_categoria;
+    $condiciones[] = "s.id_categoria = $id_categoria";
 }
 
 if ($precio_min !== null) {
-    $condiciones[] = 's.precio >= :precio_min';
-    $parametros[':precio_min'] = $precio_min;
+    $precio_min = (float) $precio_min;
+    $condiciones[] = "s.precio >= $precio_min";
 }
+
 if ($precio_max !== null) {
-    $condiciones[] = 's.precio <= :precio_max';
-    $parametros[':precio_max'] = $precio_max;
+    $precio_max = (float) $precio_max;
+    $condiciones[] = "s.precio <= $precio_max";
 }
+
 $sql = "
     SELECT
         s.id_servicio,
@@ -115,12 +89,11 @@ $sql = "
     ORDER BY s.fecha_publicacion DESC
 ";
 
-$consulta = $pdo->prepare($sql);
-$consulta->execute($parametros);
+$consulta = mysqli_query($connection_obj, $sql) or die(mysqli_error($connection_obj));
 
-$resultados = $consulta->fetchAll();
+$resultados = mysqli_fetch_all($consulta, MYSQLI_ASSOC);
 
-abrir_pagina('Buscar servicios', $pdo);
+abrir_pagina('Buscar servicios', $connection_obj);
 ?>
 
 <link rel="stylesheet" href="estilos.css">

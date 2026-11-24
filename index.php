@@ -1,14 +1,5 @@
 <?php
-// =====================================================================
-// index.php  -  Portada del sistema
-// =====================================================================
-// Es la página que se abre en http://localhost/quick-employment/.
-// No es un caso de uso del documento: es la puerta de entrada. Desde
-// aquí se entra a buscar servicios (CU02), al login o al registro.
-//
-// Si ya hay sesión iniciada muestra atajos distintos según el rol,
-// igual que hace el menú de la plantilla.
-// =====================================================================
+
 
 require_once __DIR__ . '/config/conexion.php';
 require_once __DIR__ . '/includes/plantilla.php';
@@ -17,16 +8,19 @@ $logueado = usuario_logueado();
 $rol      = $_SESSION['rol'] ?? '';
 
 // Tres servicios activos recientes, solo para que la portada no quede vacía
-$recientes = $pdo->query(
-    'SELECT s.id_servicio, s.titulo, s.precio, u.nombre AS freelancer
+$resultado = mysqli_query(
+    $connection_obj,
+    "SELECT s.id_servicio, s.titulo, s.precio, u.nombre AS freelancer
      FROM servicios s
      INNER JOIN usuarios u ON u.id_usuario = s.id_freelancer
-     WHERE s.estado = "activo"
+     WHERE s.estado = 'activo'
      ORDER BY s.fecha_publicacion DESC
-     LIMIT 3'
-)->fetchAll();
+     LIMIT 3"
+) or die(mysqli_error($connection_obj));
 
-abrir_pagina('Inicio', $pdo);
+$recientes = mysqli_fetch_all($resultado, MYSQLI_ASSOC);
+
+abrir_pagina('Inicio', $connection_obj);
 ?>
 
 <div class="tarjeta">

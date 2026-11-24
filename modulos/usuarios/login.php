@@ -17,11 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($correo === '' || $contrasena === '') {
         $error = 'Escribe tu correo y tu contraseña.';
     } else {
-        $consulta = $pdo->prepare(
-            'SELECT id_usuario, nombre, contrasena, rol FROM usuarios WHERE correo = :correo'
-        );
-        $consulta->execute([':correo' => $correo]);
-        $usuario = $consulta->fetch();
+        $correo_seguro = mysqli_real_escape_string($connection_obj, $correo);
+
+        $query = "SELECT id_usuario, nombre, contrasena, rol
+                  FROM usuarios
+                  WHERE correo = '$correo_seguro'";
+
+        $resultado = mysqli_query($connection_obj, $query) or die(mysqli_error($connection_obj));
+        $usuario = mysqli_fetch_assoc($resultado);
 
         if ($usuario && password_verify($contrasena, $usuario['contrasena'])) {
             iniciar_sesion_usuario($usuario);
